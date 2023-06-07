@@ -88,7 +88,7 @@ class Register extends React.Component {
         event.preventDefault();
         const isFormValid = this.validateForm();
         if (isFormValid) {
-            fetch('https://face-recognition-phy5.onrender.com/v1/user/register', {
+            fetch('https://face-recognition-1ziy.onrender.com/v1/user/register', {
             method: 'post',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
