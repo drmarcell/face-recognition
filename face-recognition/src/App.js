@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
 import Particles from "react-tsparticles";
 import Navigation from './components/Navigation/Navigation';
 import Logo from './components/Logo/Logo';
@@ -9,6 +10,8 @@ import Signin from './components/Signin/Signin';
 import Register from './components/Register/Register';
 import './App.css';
 import 'tachyons';
+import { callUserApi, getUserFromLocalStorage } from './api/api';
+import { setUserEntries, logoutUser, loginUser } from './store/user/userSlice';
 
 const particleOptions = {
   particles: {
@@ -57,32 +60,44 @@ const initialState = {
   box: {},
   route: 'signin',
   isSignedIn: false,
-  user: {
-    id: '',
-    name: '',
-    email: '',
-    entries: 0,
-    joined: '',
-  }
 }
 
 class App extends Component {
   constructor() {
     super();
     this.state = initialState;
+    this._isMounted = false;
   }
 
-  loadUser = (data) => {
-    this.setState({
-      user: {
-        id: data.id,
-        name: data.name,
-        email: data.email,
-        entries: data.entries,
-        joined: data.joined,
+  componentDidMount() {
+    console.log('component mounted');
+    this._isMounted = true;
+    if (this._isMounted) {
+      const localUser = getUserFromLocalStorage();
+      if (localUser) {
+        console.log('localUser is: ', localUser);
+        this.setState({
+          route: 'home',
+          isSignedIn: true
+        });
+        this.props.loginUser({
+          user: { ...localUser.user}
+        });
       }
-    })
+    }
   }
+
+  componentWillUnmount() {
+    console.log('component unmounted');
+    this._isMounted = false;
+  }
+
+  handleScroll = () => {
+    const element = document.getElementById('scrollElement');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   calculateFaceLocation = (data) => {
     const clarifaiFace = data.outputs[0].data.regions[0].region_info.bounding_box;
@@ -105,40 +120,37 @@ class App extends Component {
     this.setState({ input: ev.target.value })
   }
 
-  onPictureSubmit = () => {
-    this.setState({ imageUrl: this.state.input })
-    fetch('https://face-recognition-1ziy.onrender.com/v1/user/imageurl', {
-      method: 'post',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        input: this.state.input,
-      })
-    })
-      .then(response => response.json())
-      .then(response => {
-        if (response) {
-          fetch('https://face-recognition-1ziy.onrender.com/v1/user/image', {
-            method: 'put',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: this.state.user.id,
-            })
-          })
-            .then(response => response.json())
-            .then(response => {
-              this.setState(Object.assign(this.state.user, { entries: response.entries }))
-            })
-            .catch(err => console.log(err));
+  onPictureSubmit = async () => {
+    await this.setState({ imageUrl: this.state.input });
+    if (this.state.imageUrl) {
+      console.log('image url added: ', this.state.imageUrl)
+      this.handleScroll();
+
+      try {
+        const imgPostBody = {
+          input: this.state.input
         }
-        this.displayFaceBox(this.calculateFaceLocation(response))
+        const faceImageData = await callUserApi('imageurl', 'post', imgPostBody);
+        if (faceImageData) {
+          const userUpdateBody = {
+            id: this.props.userState.id,
+          }
+          const userEntriesData = await callUserApi('image', 'put', userUpdateBody);
+          if (userEntriesData) {
+            this.props.setUserEntries(userEntriesData.entries);
+          }
+          this.displayFaceBox(this.calculateFaceLocation(faceImageData));
+        }
+      } catch (err) {
+        console.error('Cannot upload image to server: ', err)
       }
-      )
-      .catch(err => console.log(err));
+    }
   }
 
   onRouteChange = (route) => {
     if (route === 'signout') {
-      this.setState(initialState)
+      this.setState(initialState);
+      this.props.logoutUser();
     } else if (route === 'home') {
       this.setState({ isSignedIn: true })
     }
@@ -154,16 +166,18 @@ class App extends Component {
         />
         <Navigation onRouteChange={this.onRouteChange} isSignedIn={isSignedIn} />
         {route === 'home'
-          ? <div>
+          ? <div className="mb-10">
             <Logo />
-            <Rank name={this.state.user.name} entries={this.state.user.entries} />
+            {/* <Rank name={this.state.user.name} entries={this.state.user.entries} /> */}
+            <Rank name={this.props.userState.name} entries={this.props.userState.entries} />
             <ImageLinkForm onInputChange={this.onInputChange} onPictureSubmit={this.onPictureSubmit} />
-            <FaceRecognition box={box} imageUrl={imageUrl} />
+            <FaceRecognition id="faceRecognition" box={box} imageUrl={imageUrl} />
+            <div id="scrollElement" style={{ height: 400 }} />
           </div>
           :
           (route === 'signin'
-            ? <Signin loadUser={this.loadUser} onRouteChange={this.onRouteChange} />
-            : <Register loadUser={this.loadUser} onRouteChange={this.onRouteChange} />
+            ? <Signin onRouteChange={this.onRouteChange} />
+            : <Register onRouteChange={this.onRouteChange} />
           )
         }
       </div>
@@ -171,4 +185,18 @@ class App extends Component {
   }
 }
 
-export default App;
+const mapStateToProps = state => {
+  return { userState: state.user.user }
+};
+
+const mapDispatchToProps = dispatch => {
+  return {
+    // getUserFromLocalStorage: () => dispatch(getUserFromLocalStorage()),
+    loginUser: state => dispatch(loginUser(state)),
+    setUserEntries: state => dispatch(setUserEntries(state)),
+    logoutUser: () => dispatch(logoutUser()),
+  }
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(App);
+
