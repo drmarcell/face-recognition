@@ -58,7 +58,7 @@ class Signin extends React.Component {
     }
 
     if (!this.state.email.match(emailRegex)) {
-      console.log('email wrong');
+      // console.log('email wrong');
       tempFormError.email = 'Please provide a valid email address';
       isValid = false;
     } else if (this.state.email === '') {
@@ -67,7 +67,7 @@ class Signin extends React.Component {
       tempFormError.email = '';
     }
     if (this.state.password === '' || this.state.password.length < 3 || this.state.password.includes(' ')) {
-      console.log('password wrong');
+      // console.log('password wrong');
       tempFormError.password = 'Min. 3 characters, no space';
       isValid = false;
     } else {
@@ -81,7 +81,7 @@ class Signin extends React.Component {
         },
       });
     }
-    console.log('validation is: ', isValid)
+    // console.log('validation is: ', isValid)
     return isValid;
   };
 
@@ -97,9 +97,11 @@ class Signin extends React.Component {
           password: this.state.password
         }
         const loginData = await callUserApi('login', 'post', postBody);
-        console.log('loginData is: ', loginData);
+        // console.log('loginData is: ', loginData);
         if (!loginData.success) {
-          this.snackbarMessage = 'Invalid credentials!';
+          loginData?.error?.name || loginData?.error?.password
+            ? this.snackbarMessage = 'Please don\'t use \'<\' or \'>\' characters'
+            : this.snackbarMessage = 'Invalid credentials!';
           this.show()
         } else if (loginData.user.id) {
           // this.props.loadUser(loginData.user);

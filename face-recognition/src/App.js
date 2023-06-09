@@ -70,12 +70,12 @@ class App extends Component {
   }
 
   componentDidMount() {
-    console.log('component mounted');
+    // console.log('component mounted');
     this._isMounted = true;
     if (this._isMounted) {
       const localUser = getUserFromLocalStorage();
       if (localUser) {
-        console.log('localUser is: ', localUser);
+        // console.log('localUser is: ', localUser);
         this.setState({
           route: 'home',
           isSignedIn: true
@@ -88,7 +88,7 @@ class App extends Component {
   }
 
   componentWillUnmount() {
-    console.log('component unmounted');
+    // console.log('component unmounted');
     this._isMounted = false;
   }
 
@@ -123,7 +123,7 @@ class App extends Component {
   onPictureSubmit = async () => {
     await this.setState({ imageUrl: this.state.input });
     if (this.state.imageUrl) {
-      console.log('image url added: ', this.state.imageUrl)
+      // console.log('image url added: ', this.state.imageUrl)
       this.handleScroll();
 
       try {

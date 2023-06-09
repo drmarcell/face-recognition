@@ -4,6 +4,15 @@ const bcrypt = require("bcrypt")
 async function login(req, res) {
     const email = req.body.email;
     const password = req.body.password;
+    const validationResult = validateForm(null, email, password);
+
+    if (!validationResult.isValid) {
+      return res.json({
+        success: false,
+        error: validationResult.formError
+      })
+    }
+
     const user = await checkExistingUser(email);
     let isSamePassword = false;
     if (user) {
@@ -30,29 +39,74 @@ async function register(req, res) {
     const name = req.body.name;
     const email = req.body.email;
     const password = req.body.password;
+    const validationResult = validateForm(name, email, password);
+    if (!validationResult.isValid) {
+      return res.json({
+        success: false,
+        error: validationResult.formError
+      })
+    }
+
     const encryptedPass = await encryptPassword(password);
     console.log('encryptedPass: ', encryptedPass);
 
     if (encryptedPass) {
         const registerSuccess = await registerUser(name, email, encryptedPass);
         if (registerSuccess.success) {
-            res.status(200).send({
+            res.status(200).json({
                 success: true,
                 user: registerSuccess.user
             });
         } else {
-            res.send({
+            res.json({
                 success: false,
                 error: registerSuccess.error
             })
         }
     } else {
-        res.send({
+        res.json({
             success: false
         })
     }
 
 }
+
+function validateForm(name, email, password) {
+  const emailRegex = /^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/;
+  let isValid = true;
+  let formError = {
+    name: null,
+    email: null,
+    password: null
+  }
+
+  if (name) {
+    if (name === '' || name.length < 3 || name.includes('  ') || name.includes('<') || name.includes('>')) {
+      formError.name = 'invalid';
+      isValid = false;
+    } else {
+      formError.name = null;
+    }
+  }
+
+  if (!email.match(emailRegex)) {
+    formError.email = 'invalid';
+    isValid = false;
+  } else if (email === '') {
+    formError.email = 'empty';
+  } else {
+    formError.email = null;
+  }
+  if (password === '' || password.length < 3 || password.includes(' ') || password.includes('<') || password.includes('>')) {
+    formError.password = 'invalid';
+    isValid = false;
+  } else {
+    formError.password = null;
+  }
+
+  console.log('validation is: ', isValid)
+  return {isValid, formError};
+};
 
 async function encryptPassword(password) {
     const salt = 12;

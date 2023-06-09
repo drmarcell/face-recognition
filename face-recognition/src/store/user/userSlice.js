@@ -17,7 +17,7 @@ const userSlice = createSlice({
     getUserFromLocalStorage: (state) => {
       const localUser = JSON.parse(localStorage.getItem('user'));
       if (localUser) {
-        console.log('localuser found');
+        // console.log('localuser found');
         return state = localUser;
       }
     },

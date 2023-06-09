@@ -66,21 +66,21 @@ class Register extends React.Component {
     }
 
     if (this.state.name === '' || this.state.name.length < 3 || this.state.name.includes('  ')) {
-      console.log('name wrong');
+      // console.log('name wrong');
       tempFormError.name = 'Min. 3 characters, max 1 space at once';
       isValid = false;
     } else {
       tempFormError.name = '';
     }
     if (!this.state.email.match(emailRegex)) {
-      console.log('email wrong');
+      // console.log('email wrong');
       tempFormError.email = 'Please provide a valid email address';
       isValid = false;
     } else {
       tempFormError.email = '';
     }
     if (this.state.password === '' || this.state.password.length < 3 || this.state.password.includes(' ')) {
-      console.log('password wrong');
+      // console.log('password wrong');
       tempFormError.password = 'Min. 3 characters, no space';
       isValid = false;
 
@@ -95,7 +95,7 @@ class Register extends React.Component {
         },
       });
     }
-    console.log('validation is: ', isValid)
+    // console.log('validation is: ', isValid)
     return isValid;
   };
 
@@ -114,12 +114,14 @@ class Register extends React.Component {
         this.setState({ isLoading: true });
         const registrationData = await callUserApi('register', 'post', postBody);
         if (registrationData.error) {
-          console.log('error occured')
+          // console.log('error occured')
           registrationData.error === 'occupied'
             ? this.snackbarMessage = 'The given email is already in use!'
             : registrationData.error === 'failed'
               ? this.snackbarMessage = 'Registration was unsuccessful!'
-              : this.snackbarMessage = '';
+              : registrationData.error.name || registrationData.error.password
+                ? this.snackbarMessage = 'Please don\'t use \'<\' or \'>\' characters'
+                : this.snackbarMessage = '';
           this.snackbarIcon = '❌';
           this.show();
           this.setState({ isLoading: false });
